@@ -76,7 +76,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 //#define USE_MINISAT22
-
+static int Abc_CommandHelloWorld             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintStats             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintExdc              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintIo                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -776,6 +776,7 @@ Gia_Man_t * Abc_FrameGetGia( Abc_Frame_t * pAbc )
 void Abc_Init( Abc_Frame_t * pAbc )
 {
     Cmd_CommandAdd( pAbc, "Printing",     "print_stats",   Abc_CommandPrintStats,       0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "Hello_World",   Abc_CommandHelloWorld,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_exdc",    Abc_CommandPrintExdc,        0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_io",      Abc_CommandPrintIo,          0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_latch",   Abc_CommandPrintLatch,       0 );
@@ -3054,6 +3055,23 @@ usage:
     Abc_Print( -2, "\t-f    : toggles visualizing flop dependency graph [default = %s].\n", fFlopDep? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandHelloWorld( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_HelloWorld("Hello World! I'm in ABC!");
+    return 0;
 }
 
 /**Function*************************************************************
