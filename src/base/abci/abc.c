@@ -3070,17 +3070,36 @@ usage:
 ***********************************************************************/
 int Abc_CommandPartialRectification( Abc_Frame_t *pAbc, int argc, char ** argv )
 {
+  // printf("Printing object stats:\n");
+  // Abc_NtkForEachNode(pNtk, pNet, i) {
+  //   char *name = Nm_ManFindNameById(pNtk->pManName, pNet->Id);
+  //   unsigned int type = pNet->Type;
+  //   printf("Name: [%s], Type: [%d], isCompl: [%d], nFanIn: [%d],
+  //   nFanOut:[%d]\n", name,
+  //          pNet->Type, Abc_ObjIsComplement(pNet), Abc_ObjFaninNum(pNet),
+  //          Abc_ObjFanoutNum(pNet));
+  // }
     
+  // printf("Printing object stats:\n");
+  // Abc_NtkForEachNode(pNtk, pNet, i) {
+  //   char *name = Nm_ManFindNameById(pNtk->pManName, pNet->Id);
+  //   unsigned int type = pNet->Type;
+  //   printf("Name: [%s], Type: [%d], isCompl: [%d], nFanIn: [%d],
+  //   nFanOut:[%d]\n", name,
+  //          pNet->Type, Abc_ObjIsComplement(pNet), Abc_ObjFaninNum(pNet),
+  //          Abc_ObjFanoutNum(pNet));
+  // }
 
-    //Read in two networks
-    Abc_Ntk_t *pNtk, *pNtk1, *pNtk2, *pNtkRes;
-    char ** pArgvNew = argv+1;
-    int nArgcNew = 2;
+  // Read in two networks
+    Abc_Ntk_t *pBuggy, *pCorr, *pdiff;
+    char **pArgvNew = argv + 1;
     int fDelete1, fDelete2;
-    pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Ntk_t *pCare1;
+    Abc_Ntk_t *pCare2;
+    Abc_Ntk_t *pCorr2;
 
-    //Defaults
-    int fComb  = 0;
+    // Defaults
+    int fComb = 0;
     int fCheck = 1;
     int fImplic = 0;
     int fMulti = 0;
@@ -3088,97 +3107,119 @@ int Abc_CommandPartialRectification( Abc_Frame_t *pAbc, int argc, char ** argv )
     int fTrans = 0;
     int fIgnoreNames = 0;
 
-
-    // if (pNtk){
-    //     printf("The name of the network is %s \n", pNtk->pName);
-    //     if (pNtk->ntkType == 0){
-    //         printf("The type of the network is unknown.");
-    //     }
-    //     else if (pNtk->ntkType == 1){
-    //         printf("The type of the network is a netlist");
-    //     }
-    //     else if (pNtk->ntkType == 2){
-    //         printf("The type of the network is logic");
-    //     }
-    //     else if (pNtk->ntkType == 3){
-    //         printf("The type of the network is a strash");
-    //     }
-    //     else if (pNtk->ntkType == 4){
-    //         printf("The type of the network is other");
-    //     }
-    // }
-
-    // if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
-    //     return 1;
-    
-    int i;
-    Abc_Obj_t *pNet;
-    Abc_Obj_t *pEmpty;
-
-    pNet = Nm_ManFindIdByName(pNtk->pManName, argv[1], ABC_OBJ_NODE);
-
-    if (pNet){
-
-        // printf("Printing fanins: \n");
-        // Abc_ObjForEachFanin(pNet, pEmpty, i){
-        //     printf("Got here! \n");
-        //     if (pEmpty){
-        //         printf("Name: %s ", Nm_ManFindNameById(pNtk->pManName, pEmpty->Id));
-        //         printf("Got here2! \n");
-        //         printf("Compl0: %d ", pEmpty->fCompl0);
-        //         printf("Compl1: %d ", pEmpty->fCompl1);
-        //         printf("Type: %d \n", pEmpty->Type);
-        //     }
-        // }
-
-        printf("Printing fanouts: \n");
-        Abc_ObjForEachFanout(pNet, pEmpty, i)
-        {
-            if (pEmpty){
-                printf("Name: %s ", Nm_ManFindNameById(pNtk->pManName, pEmpty->Id));
-                printf("Compl0: %d ", pEmpty->fCompl0);
-                printf("Compl1: %d ", pEmpty->fCompl1);
-                printf("Type: %d \n", pEmpty->Type);
-            }
-        }
+    if (argc < 5) {
+        printf("Not enough arguments, expecting 4\n");
+        return 1;
     }
 
-    
+    pBuggy = Io_Read( argv[1], Io_ReadFileType(argv[1]), fCheck, 0 );
+    if ( pBuggy == NULL ) {
+        return 1;
+    }
+    pCorr = Io_Read( argv[2], Io_ReadFileType(argv[2]), fCheck, 0 );
+    if ( pCorr == NULL )
+    {
+        return 1;
+    }    
 
-    // Abc_NtkForEachObj( pNtk, pNet, i ){
-    //     char * name = Nm_ManFindNameById(pNtk->pManName, pNet->Id);
-    //     unsigned int type = pNet->Type;
-    //     if (type){
-    //         printf("The type of the object is %d \n", pNet->Type);
-    //     }
-    //     if (name){
-    //         printf("The name of the object is %s \n", name);
-    //     }
-    // }
+    pCare1 = Abc_NtkDup(pBuggy);
+    pCare2 = Abc_NtkDup(pBuggy);
+    pCorr2 = Abc_NtkDup(pCorr);
 
-    
-    // //Compute the diff set 
-    // pNtkRes = Abc_NtkMiter( pNtk1, pNtk2, fComb, nPartSize, fImplic, fMulti );
-    // Abc_Ntk_t *pdiff = pNtkRes;
-
-    // if ( pdiff == NULL )
-    // {
-    //     Abc_Print( -1, "Miter computation has failed.\n" );
-    //     return 0;
-    // }
-    // // replace the current network
-    // Abc_FrameReplaceCurrentNetwork( pAbc, pdiff );
-    
-    // Abc_Obj_t *ptargetNet = Nm_ManFindIdByName(pNtk->pManName, argv[1], ABC_OBJ_NODE);
-
-    // if (ptargetNet)
-    //     ptargetNet->pData = Hop_Not((Hop_Obj_t*)ptargetNet->pData);
 
     //Find care1 and care2
-    // Abc_Ntk_t *pcare1;
-    // Abc_Ntk_t *pcare2;
+    Abc_Obj_t *pNet;
+    int i;
 
 
+
+    //care1: complement edge from argument 4
+    pNet = Abc_NtkObj(pCare1, Nm_ManFindIdByName(pBuggy->pManName, argv[3], ABC_OBJ_NODE));
+    
+    if (pNet) {
+      Abc_NodeComplement(pNet);
+    }
+
+    pCare1 = Abc_NtkMiter(pBuggy, pCare1, fComb, nPartSize, fImplic, fMulti);
+    
+    // Abc_FrameReplaceCurrentNetwork( pAbc, pCare1 );
+
+    // printf("Printing network stats\n");
+    // printf("Name: [%s], Type: [%d], Func: [%d]\n", pCare2->pName,
+    //        pCare2->ntkType, pCare2->ntkFunc);
+
+    // printf("Printing object stats:\n");
+    // Abc_NtkForEachNode(pCare2, pNet, i) {
+    //   char *name = Nm_ManFindNameById(pCare2->pManName, pNet->Id);
+    //   unsigned int type = pNet->Type;
+    //   printf(
+    //       "Name: [%s], Type: [%d], isCompl: [%d], nFanIn: [%d], nFanOut:[%d]\n",
+    //       name, pNet->Type, Abc_ObjIsComplement(pNet), Abc_ObjFaninNum(pNet),
+    //       Abc_ObjFanoutNum(pNet));
+    // }
+
+    // care2: complement edge from argument 5
+    pNet = Abc_NtkObj(pCare2, Nm_ManFindIdByName(pBuggy->pManName, argv[4], ABC_OBJ_NODE));
+
+    if (pNet) {
+      Abc_NodeComplement(pNet);
+    }
+
+    pCare2 = Abc_NtkMiter(pBuggy, pCare2, fComb, nPartSize, fImplic, fMulti);
+
+// Testing: replace the current network
+    // Abc_FrameReplaceCurrentNetwork( pAbc, pCare2 );
+
+    // Compute the diff set 
+    pdiff = Abc_NtkMiter( pBuggy, pCorr, fComb, nPartSize, fImplic, fMulti );
+
+    if ( pdiff == NULL )
+    {
+        Abc_Print( -1, "Miter computation has failed.\n" );
+        return 0;
+    }
+
+    // test combining
+    Abc_Ntk_t * pCone = Abc_NtkCreateCone(pBuggy, 
+        Abc_NtkObj(pBuggy, 
+            Nm_ManFindIdByName(pBuggy->pManName, argv[3], ABC_OBJ_NODE)), "t0", 1);
+    // create an inverted copy of cone net and diff 
+    Abc_Ntk_t * pConeInv = Abc_NtkDup(pCone);
+    pNet = Abc_ObjFanin0(Abc_NtkPo(pConeInv, 0));
+
+    if (pNet) {
+      Abc_NodeComplement(pNet);
+    }
+    pCone = Abc_NtkStrash(pCone, 0, 0, 0);
+    pConeInv = Abc_NtkStrash(pConeInv, 0,0,0);
+
+    Abc_Ntk_t * pDiffInv = Abc_NtkToLogic(Abc_NtkDup(pdiff));
+    pNet = Abc_ObjFanin0(Abc_NtkPo(pDiffInv, 0));
+    if (pNet) {
+      Abc_NodeComplement(pNet);
+    }
+    pDiffInv = Abc_NtkStrash(pDiffInv, 0,0,0);
+
+
+    Abc_Ntk_t *pOn1 = Abc_NtkMiterAnd(Abc_NtkMiterAnd(pCare1, pdiff, 0, 0), pConeInv, 0, 0);
+    Abc_Ntk_t *pOn2 = Abc_NtkMiterAnd(Abc_NtkMiterAnd(pCare1, pDiffInv, 0, 0), pCone, 0, 0);
+    Abc_Ntk_t *pOn = Abc_NtkMiterAnd(pOn1, pOn2, 1, 0);
+
+    printf("Printing pConeInv\n");
+    printf("Name: [%s], Type: [%d], Func: [%d]\n", pConeInv->pName,
+    pConeInv->ntkType, pConeInv->ntkFunc);
+
+    printf("Printing object stats:\n");
+    Abc_NtkForEachNode(pConeInv, pNet, i) {
+      char *name = Nm_ManFindNameById(pConeInv->pManName, pNet->Id);
+      unsigned int type = pNet->Type;
+      printf("Name: [%s], Type: [%d], isCompl: [%d], nFanIn: [%d], nFanOut:[%d]\n", name,
+           pNet->Type, Abc_ObjIsComplement(pNet), Abc_ObjFaninNum(pNet),
+           Abc_ObjFanoutNum(pNet));
+    }
+
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork(pAbc, pOn);
 
     return 0;
 }
