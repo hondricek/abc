@@ -1495,11 +1495,6 @@ int Abc_AigCountNext( Abc_Aig_t * pMan )
 ////////////////////////////////////////////////////////////////////////
 
 
-void Abc_NtkHelloWorld( Abc_Ntk_t * pNtk )
-{
-    printf( "Hello, World!\n" );
-}
-
 
 ABC_NAMESPACE_IMPL_END
 

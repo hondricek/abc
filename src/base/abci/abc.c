@@ -76,7 +76,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 //#define USE_MINISAT22
-static int Abc_CommandHelloWorld             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPartialRectification             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintStats             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintExdc              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintIo                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -776,7 +776,7 @@ Gia_Man_t * Abc_FrameGetGia( Abc_Frame_t * pAbc )
 void Abc_Init( Abc_Frame_t * pAbc )
 {
     Cmd_CommandAdd( pAbc, "Printing",     "print_stats",   Abc_CommandPrintStats,       0 );
-    Cmd_CommandAdd( pAbc, "Printing",     "Hello_World",   Abc_CommandHelloWorld,       0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "partial_rect",  Abc_CommandPartialRectification,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_exdc",    Abc_CommandPrintExdc,        0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_io",      Abc_CommandPrintIo,          0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_latch",   Abc_CommandPrintLatch,       0 );
@@ -3068,9 +3068,118 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandHelloWorld( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandPartialRectification( Abc_Frame_t *pAbc, int argc, char ** argv )
 {
-    Abc_HelloWorld("Hello World! I'm in ABC!");
+    
+
+    //Read in two networks
+    Abc_Ntk_t *pNtk, *pNtk1, *pNtk2, *pNtkRes;
+    char ** pArgvNew = argv+1;
+    int nArgcNew = 2;
+    int fDelete1, fDelete2;
+    pNtk = Abc_FrameReadNtk(pAbc);
+
+    //Defaults
+    int fComb  = 0;
+    int fCheck = 1;
+    int fImplic = 0;
+    int fMulti = 0;
+    int nPartSize = 0;
+    int fTrans = 0;
+    int fIgnoreNames = 0;
+
+
+    // if (pNtk){
+    //     printf("The name of the network is %s \n", pNtk->pName);
+    //     if (pNtk->ntkType == 0){
+    //         printf("The type of the network is unknown.");
+    //     }
+    //     else if (pNtk->ntkType == 1){
+    //         printf("The type of the network is a netlist");
+    //     }
+    //     else if (pNtk->ntkType == 2){
+    //         printf("The type of the network is logic");
+    //     }
+    //     else if (pNtk->ntkType == 3){
+    //         printf("The type of the network is a strash");
+    //     }
+    //     else if (pNtk->ntkType == 4){
+    //         printf("The type of the network is other");
+    //     }
+    // }
+
+    // if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
+    //     return 1;
+    
+    int i;
+    Abc_Obj_t *pNet;
+    Abc_Obj_t *pEmpty;
+
+    pNet = Nm_ManFindIdByName(pNtk->pManName, argv[1], ABC_OBJ_NODE);
+
+    if (pNet){
+
+        // printf("Printing fanins: \n");
+        // Abc_ObjForEachFanin(pNet, pEmpty, i){
+        //     printf("Got here! \n");
+        //     if (pEmpty){
+        //         printf("Name: %s ", Nm_ManFindNameById(pNtk->pManName, pEmpty->Id));
+        //         printf("Got here2! \n");
+        //         printf("Compl0: %d ", pEmpty->fCompl0);
+        //         printf("Compl1: %d ", pEmpty->fCompl1);
+        //         printf("Type: %d \n", pEmpty->Type);
+        //     }
+        // }
+
+        printf("Printing fanouts: \n");
+        Abc_ObjForEachFanout(pNet, pEmpty, i)
+        {
+            if (pEmpty){
+                printf("Name: %s ", Nm_ManFindNameById(pNtk->pManName, pEmpty->Id));
+                printf("Compl0: %d ", pEmpty->fCompl0);
+                printf("Compl1: %d ", pEmpty->fCompl1);
+                printf("Type: %d \n", pEmpty->Type);
+            }
+        }
+    }
+
+    
+
+    // Abc_NtkForEachObj( pNtk, pNet, i ){
+    //     char * name = Nm_ManFindNameById(pNtk->pManName, pNet->Id);
+    //     unsigned int type = pNet->Type;
+    //     if (type){
+    //         printf("The type of the object is %d \n", pNet->Type);
+    //     }
+    //     if (name){
+    //         printf("The name of the object is %s \n", name);
+    //     }
+    // }
+
+    
+    // //Compute the diff set 
+    // pNtkRes = Abc_NtkMiter( pNtk1, pNtk2, fComb, nPartSize, fImplic, fMulti );
+    // Abc_Ntk_t *pdiff = pNtkRes;
+
+    // if ( pdiff == NULL )
+    // {
+    //     Abc_Print( -1, "Miter computation has failed.\n" );
+    //     return 0;
+    // }
+    // // replace the current network
+    // Abc_FrameReplaceCurrentNetwork( pAbc, pdiff );
+    
+    // Abc_Obj_t *ptargetNet = Nm_ManFindIdByName(pNtk->pManName, argv[1], ABC_OBJ_NODE);
+
+    // if (ptargetNet)
+    //     ptargetNet->pData = Hop_Not((Hop_Obj_t*)ptargetNet->pData);
+
+    //Find care1 and care2
+    // Abc_Ntk_t *pcare1;
+    // Abc_Ntk_t *pcare2;
+
+
+
     return 0;
 }
 

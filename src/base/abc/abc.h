@@ -827,8 +827,8 @@ extern ABC_DLL Odc_Man_t *        Abc_NtkDontCareAlloc( int nVarsMax, int nLevel
 extern ABC_DLL void               Abc_NtkDontCareClear( Odc_Man_t * p );
 extern ABC_DLL void               Abc_NtkDontCareFree( Odc_Man_t * p );
 extern ABC_DLL int                Abc_NtkDontCareCompute( Odc_Man_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, unsigned * puTruth );
-/*=== abcHelloWorld.c ==========================================================*/
-extern ABC_DLL void               Abc_HelloWorld(char* str);
+/*=== abcPartialRectification.c ==========================================================*/
+extern ABC_DLL void               Abc_PartialRectification(char* str);
 /*=== abcPrint.c ==========================================================*/
 extern ABC_DLL float              Abc_NtkMfsTotalSwitching( Abc_Ntk_t * pNtk );
 extern ABC_DLL float              Abc_NtkMfsTotalGlitching( Abc_Ntk_t * pNtk, int nPats, int Prob, int fVerbose );

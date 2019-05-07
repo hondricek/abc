@@ -24,9 +24,13 @@
 ABC_NAMESPACE_IMPL_START
 
 
-void Abc_HelloWorld( char* str)
+void Abc_PartialRectification( char* str)
 {
-    printf(str);
+    
+    
+
+
+
 }
 
 

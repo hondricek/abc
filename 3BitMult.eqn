@@ -1,0 +1,20 @@
+INORDER = a0 a1 a2 b0 b1 b2;
+OUTORDER = z0 z1 z2;
+
+d0 = a0*b0;
+d1 = a1*b2;
+d2 = a2*b1;
+d3 = a1*b0;
+d4 = a0*b1;
+d5 = a2*b2;
+d6 = a1*b1;
+d7 = a0*b2;
+d8 = a2*b0;
+e0 = !d1*d2 + d1*!d2; 
+e1 = !d3*d4 + d3*!d4;
+e2 = !d5*d6 + d5*!d6;
+e3 = !d7*d8 + d7*!d8;
+f0 = !e0*e1 + e0*!e1;
+z0 = !d0*e0 + d0*!e0;
+z1 = !f0*d5 + f0*!d5;
+z2 = !e2*e3 + e2*!e3;
