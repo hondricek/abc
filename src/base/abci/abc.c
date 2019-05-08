@@ -3059,11 +3059,13 @@ usage:
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Attempts two-net rectification of a circuit.]
 
-  Description []
+  Description [Must input the buggy circuit first, followed by the correct circuit, then 
+                the names of two nets at which rectification is to be attempted.]
 
-  SideEffects []
+  SideEffects [Will write two .eqn files representing the rectification functions,
+                if they exist. Replaces the current network with the first rectification function.]
 
   SeeAlso     []
 
@@ -3313,7 +3315,10 @@ int Abc_CommandPartialRectification( Abc_Frame_t *pAbc, int argc, char ** argv )
 
     Abc_Ntk_t *pRectFn1;
     Abc_Ntk_t *pRectFn2;
-
+    
+    //Generate an interpolant corresponding to a rectification function 
+    //For net 1, if it exists.
+    if (RetValue1 == 1){
     pRectFn1 = Abc_NtkInter( pOn, pOff, 0, 0 );
 
     if ( pRectFn1 == NULL )
@@ -3321,7 +3326,12 @@ int Abc_CommandPartialRectification( Abc_Frame_t *pAbc, int argc, char ** argv )
         Abc_Print( -1, "Command has failed.\n" );
         return 0;
     }
+    Io_Write( pRectFn1, "partialRectNet1", IO_FILE_EQN );
+    }
 
+    //Generate an interpolant corresponding to a rectification function
+    //For net 2, if it exists.
+    if (RetValue2 == 1){
     pRectFn2 = Abc_NtkInter( pOn2, pOff2, 0, 0 );
 
     if ( pRectFn2 == NULL )
@@ -3330,6 +3340,8 @@ int Abc_CommandPartialRectification( Abc_Frame_t *pAbc, int argc, char ** argv )
         return 0;
     }
 
+    Io_Write( pRectFn2, "partialRectNet2", IO_FILE_EQN );
+    }
 
     // RetValue1 = Abc_NtkMiterSat( pExistNet1, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, NULL, NULL );
     // RetValue2 = Abc_NtkMiterSat( pExistNet2, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, NULL, NULL );
