@@ -3070,6 +3070,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandPartialRectification( Abc_Frame_t *pAbc, int argc, char ** argv )
 {
+    extern Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fRelation, int fVerbose );
   // printf("Printing object stats:\n");
   // Abc_NtkForEachNode(pNtk, pNet, i) {
   //   char *name = Nm_ManFindNameById(pNtk->pManName, pNet->Id);
