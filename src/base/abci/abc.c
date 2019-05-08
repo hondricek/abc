@@ -3131,8 +3131,6 @@ int Abc_CommandPartialRectification( Abc_Frame_t *pAbc, int argc, char ** argv )
     Abc_Obj_t *pNet;
     int i;
 
-
-
     //care1: complement edge from argument 4
     pNet = Abc_NtkObj(pCare1, Nm_ManFindIdByName(pBuggy->pManName, argv[3], ABC_OBJ_NODE));
     
@@ -3140,6 +3138,8 @@ int Abc_CommandPartialRectification( Abc_Frame_t *pAbc, int argc, char ** argv )
       Abc_NodeComplement(pNet);
     }
 
+    //TODO: Loop through each PO of the buggy network, create a cone of the PO, miter with cones of PO from care1, care2 to 
+    //make compatible with multiple output functions.
     pCare1 = Abc_NtkMiter(pBuggy, pCare1, fComb, nPartSize, fImplic, fMulti);
     
     // Abc_FrameReplaceCurrentNetwork( pAbc, pCare1 );
@@ -3165,12 +3165,14 @@ int Abc_CommandPartialRectification( Abc_Frame_t *pAbc, int argc, char ** argv )
       Abc_NodeComplement(pNet);
     }
 
+    //TODO: Make compatible with multiple output functions
     pCare2 = Abc_NtkMiter(pBuggy, pCare2, fComb, nPartSize, fImplic, fMulti);
 
 // Testing: replace the current network
     // Abc_FrameReplaceCurrentNetwork( pAbc, pCare2 );
 
     // Compute the diff set 
+    //TODO: Make compatible with multiple output functions
     pdiff = Abc_NtkMiter( pBuggy, pCorr, fComb, nPartSize, fImplic, fMulti );
 
     if ( pdiff == NULL )
@@ -3179,11 +3181,16 @@ int Abc_CommandPartialRectification( Abc_Frame_t *pAbc, int argc, char ** argv )
         return 0;
     }
 
-    // test combining
+    // Create cones of the two target nets
     Abc_Ntk_t * pCone = Abc_NtkCreateCone(pBuggy, 
         Abc_NtkObj(pBuggy, 
             Nm_ManFindIdByName(pBuggy->pManName, argv[3], ABC_OBJ_NODE)), "t0", 1);
-    // create an inverted copy of cone net and diff 
+    
+    Abc_Ntk_t * pCone2 = Abc_NtkCreateCone(pBuggy, 
+        Abc_NtkObj(pBuggy, 
+            Nm_ManFindIdByName(pBuggy->pManName, argv[4], ABC_OBJ_NODE)), "t0", 1);
+
+    // Create an inverted copy of the first target cone
     Abc_Ntk_t * pConeInv = Abc_NtkDup(pCone);
     pNet = Abc_ObjFanin0(Abc_NtkPo(pConeInv, 0));
 
@@ -3193,6 +3200,18 @@ int Abc_CommandPartialRectification( Abc_Frame_t *pAbc, int argc, char ** argv )
     pCone = Abc_NtkStrash(pCone, 0, 0, 0);
     pConeInv = Abc_NtkStrash(pConeInv, 0,0,0);
 
+    //Invert Cone2
+    Abc_Ntk_t * pCone2Inv = Abc_NtkDup(pCone2);
+    pNet = Abc_ObjFanin0(Abc_NtkPo(pCone2Inv, 0));
+
+    if (pNet) {
+      Abc_NodeComplement(pNet);
+    }
+
+    pCone2 = Abc_NtkStrash(pCone2, 0, 0, 0);
+    pCone2Inv = Abc_NtkStrash(pCone2Inv, 0,0,0);
+
+    //Create inverted copy of diff
     Abc_Ntk_t * pDiffInv = Abc_NtkToLogic(Abc_NtkDup(pdiff));
     pNet = Abc_ObjFanin0(Abc_NtkPo(pDiffInv, 0));
     if (pNet) {
@@ -3200,26 +3219,119 @@ int Abc_CommandPartialRectification( Abc_Frame_t *pAbc, int argc, char ** argv )
     }
     pDiffInv = Abc_NtkStrash(pDiffInv, 0,0,0);
 
-
+    //Compute the on-set for net 1 partial fix
     Abc_Ntk_t *pOn1 = Abc_NtkMiterAnd(Abc_NtkMiterAnd(pCare1, pdiff, 0, 0), pConeInv, 0, 0);
     Abc_Ntk_t *pOn2 = Abc_NtkMiterAnd(Abc_NtkMiterAnd(pCare1, pDiffInv, 0, 0), pCone, 0, 0);
     Abc_Ntk_t *pOn = Abc_NtkMiterAnd(pOn1, pOn2, 1, 0);
 
-    printf("Printing pConeInv\n");
-    printf("Name: [%s], Type: [%d], Func: [%d]\n", pConeInv->pName,
-    pConeInv->ntkType, pConeInv->ntkFunc);
+    //Compute the off-set for net 1 partial fix
+    Abc_Ntk_t *pOff1 = Abc_NtkMiterAnd(Abc_NtkMiterAnd(pCare1, pdiff, 0, 0), pCone, 0, 0);
+    Abc_Ntk_t *pOff2 = Abc_NtkMiterAnd(Abc_NtkMiterAnd(pCare1, pDiffInv, 0, 0), pConeInv, 0, 0);
+    Abc_Ntk_t *pOff = Abc_NtkMiterAnd(pOff1, pOff2, 1, 0);
 
-    printf("Printing object stats:\n");
-    Abc_NtkForEachNode(pConeInv, pNet, i) {
-      char *name = Nm_ManFindNameById(pConeInv->pManName, pNet->Id);
-      unsigned int type = pNet->Type;
-      printf("Name: [%s], Type: [%d], isCompl: [%d], nFanIn: [%d], nFanOut:[%d]\n", name,
-           pNet->Type, Abc_ObjIsComplement(pNet), Abc_ObjFaninNum(pNet),
-           Abc_ObjFanoutNum(pNet));
+    //Determine whether partial-fix rectification exists at the first net
+    Abc_Ntk_t *pExistNet1 = Abc_NtkMiterAnd(pOn, pOff, 0, 0);
+
+    //Compute the on-set for net 2 partial fix
+    pOn1 = Abc_NtkMiterAnd(Abc_NtkMiterAnd(pCare2, pdiff, 0, 0), pCone2Inv, 0, 0);
+    pOn2 = Abc_NtkMiterAnd(Abc_NtkMiterAnd(pCare2, pDiffInv, 0, 0), pCone2, 0, 0);
+    pOn2 = Abc_NtkMiterAnd(pOn1, pOn2, 1, 0);
+
+    //Compute the off-set for net 2 partial fix
+    pOff1 = Abc_NtkMiterAnd(Abc_NtkMiterAnd(pCare2, pdiff, 0, 0), pCone2, 0, 0);
+    pOff2 = Abc_NtkMiterAnd(Abc_NtkMiterAnd(pCare2, pDiffInv, 0, 0), pCone2Inv, 0, 0);
+    pOff2 = Abc_NtkMiterAnd(pOff1, pOff2, 1, 0);
+
+    //Determine whether partial-fix rectification exists at the second net
+    Abc_Ntk_t *pExistNet2 = Abc_NtkMiterAnd(pOn2, pOff2, 0, 0);
+
+    //Run SAT on pExistNet1 and 2 to see if partial rectification exists either/both nets
+    int RetValue1, RetValue2;
+
+    //Run SAT on node 1
+    if ( Abc_NtkIsStrash(pExistNet1) )
+    {
+        RetValue1 = Abc_NtkMiterSat( pExistNet1, (ABC_INT64_T)0, (ABC_INT64_T)0, 0, NULL, NULL );
+    }
+    else
+    {
+        assert( Abc_NtkIsLogic(pExistNet1) );
+        Abc_NtkToBdd( pExistNet1 );
+        RetValue1 = Abc_NtkMiterSat( pExistNet1, (ABC_INT64_T)0, (ABC_INT64_T)0, 0, NULL, NULL );
+    }
+    // verify that the patterns are correct for node 1
+    if ( RetValue1 == 0 && Abc_NtkPoNum(pExistNet1) == 1 )
+    {
+        //int i;
+        //Abc_Obj_t * pObj;
+        int * pSimInfo = Abc_NtkVerifySimulatePattern( pExistNet1, pExistNet1->pModel );
+        if ( pSimInfo[0] != 1 )
+            Abc_Print( 1, "ERROR in Abc_NtkMiterSat(): Generated counter example is invalid.\n" );
+        ABC_FREE( pSimInfo );
     }
 
+
+    if ( RetValue1 == -1 )
+        Abc_Print( 1, "Partial Rectification might exist at net %s \n", argv[3] );
+    else if ( RetValue1 == 0 )
+        Abc_Print( 1, "Partial Rectification does not exist at net %s \n", argv[3] );
+    else{
+        Abc_Print( 1, "Partial Rectification exists at net %s \n", argv[3] );
+    }
+
+    //Check SAT on node 2
+    if ( Abc_NtkIsStrash(pExistNet2) )
+    {
+        RetValue2 = Abc_NtkMiterSat( pExistNet2, (ABC_INT64_T)0, (ABC_INT64_T)0, 0, NULL, NULL );
+    }
+    else
+    {
+        assert( Abc_NtkIsLogic(pExistNet2) );
+        Abc_NtkToBdd( pExistNet2 );
+        RetValue2 = Abc_NtkMiterSat( pExistNet2, (ABC_INT64_T)0, (ABC_INT64_T)0, 0, NULL, NULL );
+    }
+
+    // Verify Sat correct for node 2
+    if ( RetValue2 == 0 && Abc_NtkPoNum(pExistNet1) == 1 )
+    {
+        //int i;
+        //Abc_Obj_t * pObj;
+        int * pSimInfo2 = Abc_NtkVerifySimulatePattern( pExistNet2, pExistNet2->pModel );
+        if ( pSimInfo2[0] != 1 )
+            Abc_Print( 1, "ERROR in Abc_NtkMiterSat(): Generated counter example is invalid.\n" );
+        ABC_FREE( pSimInfo2 );
+    }
+
+    if ( RetValue1 == -1 )
+        Abc_Print( 1, "Partial Rectification might exist at net %s \n", argv[4] );
+    else if ( RetValue1 == 0 )
+        Abc_Print( 1, "Partial Rectification does not exist at net %s \n", argv[4] );
+    else{
+        Abc_Print( 1, "Partial Rectification exists at net %s \n", argv[4] );
+    }
+
+
+    // RetValue1 = Abc_NtkMiterSat( pExistNet1, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, NULL, NULL );
+    // RetValue2 = Abc_NtkMiterSat( pExistNet2, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, NULL, NULL );
+
+    //Run inter to generate a partial fix function
+    //Do the whole thing for the second input net
+
+    // printf("Printing pConeInv\n");
+    // printf("Name: [%s], Type: [%d], Func: [%d]\n", pConeInv->pName,
+    // pConeInv->ntkType, pConeInv->ntkFunc);
+
+    // printf("Printing object stats:\n");
+    // Abc_NtkForEachNode(pConeInv, pNet, i) {
+    //   char *name = Nm_ManFindNameById(pConeInv->pManName, pNet->Id);
+    //   unsigned int type = pNet->Type;
+    //   printf("Name: [%s], Type: [%d], isCompl: [%d], nFanIn: [%d], nFanOut:[%d]\n", name,
+    //        pNet->Type, Abc_ObjIsComplement(pNet), Abc_ObjFaninNum(pNet),
+    //        Abc_ObjFanoutNum(pNet));
+    // }
+
     // replace the current network
-    Abc_FrameReplaceCurrentNetwork(pAbc, pOn);
+    Abc_FrameReplaceCurrentNetwork(pAbc, pExistNet1);
 
     return 0;
 }
