@@ -3310,6 +3310,25 @@ int Abc_CommandPartialRectification( Abc_Frame_t *pAbc, int argc, char ** argv )
         Abc_Print( 1, "Partial Rectification exists at net %s \n", argv[4] );
     }
 
+    Abc_Ntk_t *pRectFn1;
+    Abc_Ntk_t *pRectFn2;
+
+    pRectFn1 = Abc_NtkInter( pOn, pOff, 0, 0 );
+
+    if ( pRectFn1 == NULL )
+    {
+        Abc_Print( -1, "Command has failed.\n" );
+        return 0;
+    }
+
+    pRectFn2 = Abc_NtkInter( pOn2, pOff2, 0, 0 );
+
+    if ( pRectFn2 == NULL )
+    {
+        Abc_Print( -1, "Command has failed.\n" );
+        return 0;
+    }
+
 
     // RetValue1 = Abc_NtkMiterSat( pExistNet1, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, NULL, NULL );
     // RetValue2 = Abc_NtkMiterSat( pExistNet2, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, NULL, NULL );
@@ -3331,7 +3350,7 @@ int Abc_CommandPartialRectification( Abc_Frame_t *pAbc, int argc, char ** argv )
     // }
 
     // replace the current network
-    Abc_FrameReplaceCurrentNetwork(pAbc, pExistNet1);
+    Abc_FrameReplaceCurrentNetwork(pAbc, pRectFn1);
 
     return 0;
 }
